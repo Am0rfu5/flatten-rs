@@ -5,5 +5,9 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4.38"
+ignore = "0.4.22"
+path-clean = "1.0.1"
 structopt = "0.3.26"
+syntect = "5.2.0"
+tempfile = "3.10.1"
 walkdir = "2.5.0"
