@@ -7,20 +7,18 @@ use std::path::PathBuf;
 use cli::Cli;
 use structopt::StructOpt;
 use chrono::Local;
-// use types::{ExcludeList, IncludeList};
+use types::{ExcludeList, IncludeList};
+use std::fs::canonicalize;
 
 fn main() -> io::Result<()> {
     let args = Cli::from_args();
-    let directory = args.directory;
+    let directory = canonicalize(&args.directory)?;
 
-    // let exclude = ExcludeList::new(&directory, args.exclude);
-    // let include = IncludeList::new(&directory, args.include);
+    let exclude = ExcludeList::new(&directory, args.exclude);
+    let include = IncludeList::new(&directory, args.include);
 
-    // // Troubleshooting print statement
-    // println!("Exclusion list:");
-    // for path in &exclude.0 {
-    //     println!("{}", path.display());
-    // }
+    println!("Exclusion list: {:?}", exclude);
+    println!("Inclusion list: {:?}", include);
 
     let output_file = match args.output {
         Some(path) => path,
@@ -29,13 +27,12 @@ fn main() -> io::Result<()> {
             let current_dir = directory.file_stem()
                 .and_then(|os_str| os_str.to_str())
                 .unwrap_or("root");
-            PathBuf::from(format!("flatten-{}-{}.txt", current_dir, datetime))
+            PathBuf::from(format!("flattenrs-{}-{}.txt", current_dir, datetime))
         }
     };
 
     // Check directory size and prompt if it's too large
-    let directory_size = file_processing::calculate_directory_size(&directory)?;
-    // let directory_size = file_processing::calculate_directory_size(&directory, &exclude, &include)?;
+    let directory_size = file_processing::calculate_directory_size(&directory, &exclude, &include, args.allow_hidden)?;
     const SIZE_LIMIT: u64 = 10 * 1024 * 1024; // 10 MB
     if directory_size > SIZE_LIMIT {
         println!("Warning: The directory size is {} bytes. Do you want to continue? (y/n)", directory_size);
@@ -46,7 +43,7 @@ fn main() -> io::Result<()> {
         }
     }
 
-    file_processing::process_files(&directory, &output_file)?;
+    file_processing::process_files(&directory, &output_file, &exclude, &include, args.allow_hidden)?;
 
     Ok(())
 }
