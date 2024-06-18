@@ -4,14 +4,14 @@ use std::io::{self, Write, Read};
 use std::path::PathBuf;
 use syntect::parsing::SyntaxSet;
 // use crate::types::{ExcludeList, IncludeList};
-use ignore::Walk;
+use ignore::WalkerBuilder;
 
 // pub fn process_files(directory: &PathBuf, output_file: &PathBuf, exclude: &ExcludeList, include: &IncludeList) -> io::Result<()> {
 pub fn process_files(directory: &PathBuf, output_file: &PathBuf) -> io::Result<()> {
     let mut output = File::create(output_file)?;
     let ss = SyntaxSet::load_defaults_newlines();
 
-    for result in Walk::new(directory) {
+    for result in WalkerBuilder::new(directory) {
         match result {
             Ok(entry) => { 
                 if entry.file_type().map_or(false, |ft| ft.is_file()) {
@@ -45,7 +45,7 @@ pub fn process_files(directory: &PathBuf, output_file: &PathBuf) -> io::Result<(
 pub fn calculate_directory_size(path: &PathBuf) -> io::Result<u64> {
     let mut size = 0;
 
-    for result in Walk::new("./") {
+    for result in WalkerBuilder::new("./") {
         // Each item yielded by the iterator is either a directory entry or an
         // error, so either print the path or the error.
         match result {
