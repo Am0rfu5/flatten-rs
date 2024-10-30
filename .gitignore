@@ -1,3 +1,5 @@
 /target
 .vscode
-flattenrs*
+
+flattenrs-*
+tasklist.txt
