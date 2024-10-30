@@ -17,9 +17,6 @@ fn main() -> io::Result<()> {
     let exclude = ExcludeList::new(&directory, args.exclude);
     let include = IncludeList::new(&directory, args.include);
 
-    println!("Exclusion list: {:?}", exclude);
-    println!("Inclusion list: {:?}", include);
-
     let output_file = match args.output {
         Some(path) => path,
         None => {
