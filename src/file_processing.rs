@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::{self, Write, Read};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use syntect::parsing::SyntaxSet;
 use crate::types::{ExcludeList, IncludeList};
 use ignore::{WalkBuilder, Walk, overrides::OverrideBuilder};

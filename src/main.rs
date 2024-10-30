@@ -10,13 +10,24 @@ use chrono::Local;
 use types::{ExcludeList, IncludeList};
 use std::fs::canonicalize;
 
+/// Main function for the `flattenrs` command-line application.
+///
+/// This function parses command-line arguments, initializes include and exclude lists,
+/// checks the directory size, and performs file processing based on the input configuration.
+///
+/// # Returns
+///
+/// * `Ok(())` on successful file processing.
+/// * `Err(io::Error)` if an error occurs during initialization or file processing.
 fn main() -> io::Result<()> {
+    // Parse command-line arguments and initialize paths    
     let args = Cli::from_args();
     let directory = canonicalize(&args.directory)?;
 
     let exclude = ExcludeList::new(&directory, args.exclude);
     let include = IncludeList::new(&directory, args.include);
-
+    
+    // Determine output file path
     let output_file = match args.output {
         Some(path) => path,
         None => {
@@ -28,7 +39,7 @@ fn main() -> io::Result<()> {
         }
     };
 
-    // Check directory size and prompt if it's too large
+    // Check directory size and prompt for confirmation if size exceeds limit
     let directory_size = file_processing::calculate_directory_size(&directory, &exclude, &include, args.allow_hidden)?;
     const SIZE_LIMIT: u64 = 10 * 1024 * 1024; // 10 MB
     if directory_size > SIZE_LIMIT {
@@ -40,6 +51,7 @@ fn main() -> io::Result<()> {
         }
     }
 
+    // Process files and generate output file
     file_processing::process_files(&directory, &output_file, &exclude, &include, args.allow_hidden)?;
 
     Ok(())

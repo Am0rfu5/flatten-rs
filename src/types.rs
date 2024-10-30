@@ -87,6 +87,7 @@ impl ExcludeList {
         ExcludeList(list)
     }
 
+    // @TODO: Implement contains method or remove it
     /// Checks if a path is present in the exclude list.
     ///
     /// # Arguments
@@ -96,6 +97,7 @@ impl ExcludeList {
     /// # Returns
     ///
     /// `true` if the path is excluded, `false` otherwise.
+    #[allow(dead_code)]
     pub fn contains(&self, path: &Path) -> bool {
         self.0.contains(&path.to_path_buf())
     }
@@ -119,6 +121,7 @@ impl IncludeList {
         IncludeList(list)
     }
     
+    // @TODO: Implement contains method or remove it
     /// Checks if a path is present in the include list.
     ///
     /// # Arguments
@@ -128,6 +131,7 @@ impl IncludeList {
     /// # Returns
     ///
     /// `true` if the path is included, `false` otherwise.
+    #[allow(dead_code)]
     pub fn contains(&self, path: &Path) -> bool {
         self.0.contains(&path.to_path_buf())
     }
