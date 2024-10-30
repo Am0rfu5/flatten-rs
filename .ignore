@@ -1,2 +1,5 @@
 Cargo.toml
 Cargo.lock
+
+tests/something.ts
+flattenrs*
