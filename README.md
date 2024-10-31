@@ -92,7 +92,7 @@ MIT License
 
 ## Development
 
-This project uses **Rust’s structopt** for CLI parsing and **syntect** for syntax highlighting. To set up the project:
+This project uses **Rust’s structopt** for CLI parsing and **syntect** for filetype identification. To set up the project:
 
 1. Clone the repository.
 2. Run `cargo build` to compile.
