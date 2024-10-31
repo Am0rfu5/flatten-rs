@@ -1,7 +1,7 @@
 # `flatten`
 
 ## Overview
-`flatten` is a Rust-based command-line tool that consolidates all files within a specified directory into a single output file. The tool supports options for including/excluding specific files or directories, processing hidden files, and managing output formats for various file types. With its flexible CLI and syntax highlighting support, `flatten` is ideal for quick aggregation of files for documentation, backup, or analysis.
+`flatten` is a Rust-based command-line tool that consolidates all files within a specified directory into a single output file. The tool supports options for including/excluding specific files or directories, processing hidden files, and managing output formats for various file types. With its flexible CLI support, `flatten` allows for quick aggregation of files for analysis.
 
 ## Features
 - **Directory Flattening**: Recursively includes all files in a directory into one output file.
