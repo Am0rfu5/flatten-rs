@@ -5,10 +5,11 @@ use tempfile::tempdir;
 
 #[test]
 fn basic_flattening_test() {
-    // Setup temporary directory with sample files
+    // Set up a temporary directory with sample files for testing
     let temp_dir = tempdir().unwrap();
     let dir_path = temp_dir.path();
-
+    
+    // Create two sample files for flattening
     let file1_path = dir_path.join("test1.txt");
     let mut file1 = File::create(&file1_path).unwrap();
     writeln!(file1, "This is test file 1").unwrap();
@@ -20,7 +21,7 @@ fn basic_flattening_test() {
     // Define output file path
     let output_file = dir_path.join("output.txt");
 
-    // Run flatten command without --directory
+    // Execute the `flatten` command, specifying the directory to process and output file
     let status = Command::new("cargo")
         .args(&["run", "--"])
         .arg(dir_path)       // Specify directory as positional argument
@@ -29,9 +30,9 @@ fn basic_flattening_test() {
         .status()
         .expect("Failed to execute flatten");
 
-    assert!(status.success());
+    assert!(status.success()); // Verify the command succeeded
 
-    // Read and validate output
+    // Read the output file to confirm the expected content is present
     let output_content = fs::read_to_string(&output_file).expect("Failed to read output file");
     assert!(output_content.contains("## test1.txt"));
     assert!(output_content.contains("This is test file 1"));
