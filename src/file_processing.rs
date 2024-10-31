@@ -7,7 +7,11 @@ use ignore::{WalkBuilder, Walk, overrides::OverrideBuilder};
 
 /// Constructs a file walker that recursively traverses a directory with specified
 /// include and exclude filters.
-///
+/// 
+/// This function leverages `ignore::WalkBuilder` to create a walker that follows
+/// `include` and `exclude` lists, allowing for fine-grained file selection while
+/// respecting hidden files if specified.
+/// 
 /// # Arguments
 ///
 /// * `directory` - The base directory to walk.
@@ -18,7 +22,11 @@ use ignore::{WalkBuilder, Walk, overrides::OverrideBuilder};
 /// # Returns
 ///
 /// * `Ok(Walk)` - The configured file walker on success.
-/// * `Err(ignore::Error)` - An error if building the walker fails.
+/// 
+/// # Errors
+///
+/// This function may return an error if the `OverrideBuilder` fails to parse
+/// any patterns provided in the `include` or `exclude` lists.
 fn build_walker(directory: &PathBuf, exclude: &ExcludeList, include: &IncludeList, allow_hidden: bool) -> Result<Walk, ignore::Error> {
     let mut overrides = OverrideBuilder::new(directory);
 
