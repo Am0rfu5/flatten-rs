@@ -20,11 +20,10 @@ fn basic_flattening_test() {
     // Define output file path
     let output_file = dir_path.join("output.txt");
 
-    // Run flattenrs command
+    // Run flattenrs command without --directory
     let status = Command::new("cargo")
         .args(&["run", "--"])
-        .arg("--directory")
-        .arg(dir_path)
+        .arg(dir_path)       // Specify directory as positional argument
         .arg("--output")
         .arg(&output_file)
         .status()
@@ -56,10 +55,9 @@ fn include_exclude_combination_test() {
 
     let output_file = dir_path.join("output.txt");
 
-    // Run flattenrs with include and exclude options
+    // Run flattenrs with include and exclude options, directory as positional argument
     let status = Command::new("cargo")
         .args(&["run", "--"])
-        .arg("--directory")
         .arg(dir_path)
         .arg("--output")
         .arg(&output_file)
@@ -93,14 +91,13 @@ fn hidden_files_test() {
 
     let output_file = dir_path.join("output.txt");
 
-    // Run flattenrs with hidden files allowed
+    // Run flattenrs with hidden files allowed, directory as positional argument
     let status = Command::new("cargo")
         .args(&["run", "--"])
-        .arg("--directory")
         .arg(dir_path)
         .arg("--output")
         .arg(&output_file)
-        .arg("--allow_hidden")
+        .arg("--allow-hidden")
         .status()
         .expect("Failed to execute flattenrs");
 
@@ -125,10 +122,9 @@ fn non_utf8_file_test() {
 
     let output_file = dir_path.join("output.txt");
 
-    // Run flattenrs
+    // Run flattenrs, directory as positional argument
     let status = Command::new("cargo")
         .args(&["run", "--"])
-        .arg("--directory")
         .arg(dir_path)
         .arg("--output")
         .arg(&output_file)
