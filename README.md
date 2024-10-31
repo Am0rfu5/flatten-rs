@@ -89,7 +89,6 @@ fn main() {
 MIT License
 ...
 ```
-```
 
 ## Development
 
