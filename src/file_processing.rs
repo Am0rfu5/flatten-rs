@@ -30,13 +30,13 @@ use ignore::{WalkBuilder, Walk, overrides::OverrideBuilder};
 fn build_walker(directory: &PathBuf, exclude: &ExcludeList, include: &IncludeList, allow_hidden: bool) -> Result<Walk, ignore::Error> {
     let mut overrides = OverrideBuilder::new(directory);
 
-    // Add include patterns
+    // Add inclusion patterns to the override builder, which takes priority over exclusions
     for inc in &include.0 {
         let inc_pattern = format!("{}", inc.display());
         overrides.add(&inc_pattern)?;
     }
 
-    // Add exclude patterns
+    // Add exclusion patterns to ignore specific paths during traversal
     for exc in &exclude.0 {
         let exc_pattern = format!("{}", exc.display());
         overrides.add(&exc_pattern)?;
@@ -44,6 +44,7 @@ fn build_walker(directory: &PathBuf, exclude: &ExcludeList, include: &IncludeLis
 
     let overrides = overrides.build()?;
 
+    // Create the file walker, setting it to include or ignore hidden files based on `allow_hidden`
     let walker = WalkBuilder::new(directory)
         .overrides(overrides)
         .hidden(!allow_hidden)
@@ -52,24 +53,30 @@ fn build_walker(directory: &PathBuf, exclude: &ExcludeList, include: &IncludeLis
     Ok(walker)
 }
 
-/// Processes all files within the given directory according to the specified include
-/// and exclude lists, and writes the flattened content into the specified output file.
-///
-/// This function reads each file's contents, formats them with appropriate syntax highlighting
-/// or plain text tags based on the file extension, and writes them into the output file.
-///
+/// Processes all files in the specified directory, applying inclusion and exclusion filters,
+/// and writes the flattened content into the given output file.
+/// 
+/// The function walks through the directory, applying include/exclude patterns and respecting
+/// hidden files if allowed. Each file’s content is appended to the output file, with syntax
+/// highlighting based on file extension, making it suitable for syntax-aware output formats.
+/// 
 /// # Arguments
-///
-/// * `directory` - The base directory to flatten.
-/// * `output_file` - The file where the flattened output will be written.
-/// * `exclude` - An `ExcludeList` specifying files and directories to ignore.
-/// * `include` - An `IncludeList` specifying files and directories to include.
-/// * `allow_hidden` - Boolean indicating whether hidden files should be included.
+/// 
+/// * `directory` - The directory to process.
+/// * `output_file` - The path to the output file where flattened content will be saved.
+/// * `exclude` - An `ExcludeList` of paths to ignore during processing.
+/// * `include` - An `IncludeList` of paths to include explicitly, even if they would otherwise be excluded.
+/// * `allow_hidden` - A boolean flag to control whether hidden files should be processed.
 ///
 /// # Returns
 ///
-/// * `Ok(())` if all files were processed successfully.
-/// * `Err(io::Error)` if any file I/O error occurs during processing.
+/// * `Ok(())` on successful processing.
+/// * `Err(io::Error)` if file I/O operations (read/write) encounter issues.
+///
+/// # Errors
+///
+/// An error is returned if the output file cannot be created, a file within
+/// the directory fails to open, or there are issues reading file contents.
 pub fn process_files(
     directory: &PathBuf, 
     output_file: &PathBuf, 
@@ -78,12 +85,11 @@ pub fn process_files(
     allow_hidden: bool
 ) -> io::Result<()> {
     
-    // Attempt to create the output file, return an error if creation fails.
+    // Create the output file or return an error if creation fails
     let mut output = File::create(output_file)?;
     let ss = SyntaxSet::load_defaults_newlines();
     
     // Build the file walker, handling errors in directory access or invalid paths.
-
     let walker = build_walker(directory, exclude, include, allow_hidden)
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
@@ -99,6 +105,7 @@ pub fn process_files(
             let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("txt");
             let syntax = ss.find_syntax_by_extension(extension).unwrap_or_else(|| ss.find_syntax_plain_text());
 
+            // Write fileheader and syntax type to the output file
             writeln!(output, "## {}", rel_path.display())?;
             writeln!(output, "```{}", syntax.name.to_lowercase())?;
 
@@ -114,7 +121,7 @@ pub fn process_files(
                 Err(_) => writeln!(output, "<non-UTF-8 data>")?,
             }
 
-            writeln!(output, "```")?;
+            writeln!(output, "```")?; // Close the syntax block
             writeln!(output)?; // Add an empty line between files
         }
     }
@@ -123,25 +130,29 @@ pub fn process_files(
 }
 
 
-/// Calculates the total size of all files within a directory, respecting the
-/// include and exclude lists as well as hidden file preferences.
-///
-/// This function sums the file sizes for all files in the specified directory,
-/// optionally including hidden files and filtering based on the provided
-/// include and exclude lists. It is useful for verifying size limits or estimating
-/// space requirements before flattening a directory.
-///
+/// Calculates the total size of all files in a directory, respecting inclusion and exclusion
+/// lists and optionally counting hidden files.
+/// 
+/// This function iterates over files within the specified directory, applying filters
+/// to sum up the sizes of only the files that match the given criteria, providing a useful
+/// size estimate prior to flattening or to verify size limits.
+/// 
 /// # Arguments
 ///
-/// * `directory` - The directory containing files to calculate.
-/// * `exclude` - An `ExcludeList` specifying files and directories to ignore.
-/// * `include` - An `IncludeList` specifying files and directories to include.
-/// * `allow_hidden` - Boolean indicating whether hidden files should be counted.
+/// * `directory` - The directory containing files to size up.
+/// * `exclude` - An `ExcludeList` specifying files or directories to ignore.
+/// * `include` - An `IncludeList` specifying files or directories to explicitly include.
+/// * `allow_hidden` - If true, includes hidden files in the total size calculation.
 ///
 /// # Returns
+/// 
+/// * `Ok(u64)` - The total size (in bytes) of files meeting the criteria.
+/// * `Err(io::Error)` if a file fails to open or retrieve metadata.
 ///
-/// * `Ok(u64)` - The total byte size of all counted files in the directory.
-/// * `Err(io::Error)` if a file I/O error occurs during size calculation.
+/// # Errors
+///
+/// Errors may arise if a file cannot be accessed due to permissions or if
+/// there is an I/O error while retrieving file metadata.
 pub fn calculate_directory_size(
     directory: &PathBuf, 
     exclude: &ExcludeList, 
@@ -149,17 +160,19 @@ pub fn calculate_directory_size(
     allow_hidden: bool
 ) -> io::Result<u64> {
 
-    // Walker will allow hideen files if allow_hidden is true
+    // Initialize a walker for directory traversal, respecting `allow_hidden`, `include`, and `exclude` settings
     let walker = build_walker(directory, exclude, include, allow_hidden)
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
     let mut size = 0;
     
-    // Use walker to traverse directory;        
+    // Traverse files, summing sizes of files matching inclusion criteria   
     for result in walker {
         let entry = result
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
         
+        // Only include files, ignoring directories
         if entry.file_type().map_or(false, |ft| ft.is_file()) {
+            // Retrieve file metadata to add its size to the total count
             size += entry.metadata()
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?.len();
         }

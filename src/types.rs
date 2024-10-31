@@ -95,17 +95,21 @@ impl ExcludeList {
 
     // @TODO: Implement contains method or remove it
     // Is this for testing or library?
-    /// Checks if a specific path is contained within the exclusion list.
-    ///
+    /// Checks if a specific path is within the exclusion list.
+    /// 
+    /// This method is used to verify if a path should be ignored during directory
+    /// traversal, based on predefined exclusion criteria.
+    /// 
     /// # Arguments
-    ///
-    /// * `path` - The path to check.
-    ///
+    /// 
+    /// * `path` - The path to check for exclusion.
+    /// 
     /// # Returns
-    ///
-    /// `true` if the path is excluded, `false` otherwise.
+    /// 
+    /// * `true` if the path is in the exclusion list, `false` otherwise.
     #[allow(dead_code)]
     pub fn contains(&self, path: &Path) -> bool {
+        // Converts `path` to `PathBuf` for easier matching with stored exclusion paths
         self.0.contains(&path.to_path_buf())
     }
 }
@@ -133,17 +137,21 @@ impl IncludeList {
     }
     
     // @TODO: Implement contains method or remove it
-    /// Checks if a specific path is contained within the inclusion list.
-    ///
+    /// Checks if a specific path is within the exclusion list.
+    /// 
+    /// This method is used to verify if a path should be ignored during directory
+    /// traversal, based on predefined exclusion criteria.
+    /// 
     /// # Arguments
-    ///
-    /// * `path` - The path to check.
-    ///
+    /// 
+    /// * `path` - The path to check for exclusion.
+    /// 
     /// # Returns
-    ///
-    /// `true` if the path is included, `false` otherwise.
+    /// 
+    /// * `true` if the path is in the exclusion list, `false` otherwise.
     #[allow(dead_code)]
     pub fn contains(&self, path: &Path) -> bool {
+        // Converts `path` to `PathBuf` for easier matching with stored inclusion paths
         self.0.contains(&path.to_path_buf())
     }
 }
@@ -168,9 +176,31 @@ impl fmt::Display for IncludeList {
     }
 }
 
+/// Generates a canonicalized path to ensure consistency and prevent
+/// mismatches due to relative paths or symbolic links.
+/// 
+/// This function resolves `..`, `.`, and symbolic links in the given path,
+/// producing an absolute and normalized path. It’s particularly useful
+/// for ensuring that inclusion/exclusion rules are reliably applied.
+/// 
+/// # Arguments
+/// 
+/// * `path` - The path to be canonicalized.
+/// 
+/// # Returns
+/// 
+/// * `Ok(PathBuf)` - The canonicalized path on success.
+/// * `Err(io::Error)` - An error if the path cannot be resolved.
+///
+/// # Errors
+///
+/// Returns an error if the path cannot be accessed, likely due to missing
+/// permissions or invalid path segments.
 fn canonicalize<P: AsRef<Path>>(path: P) -> std::io::Result<PathBuf> {
     let path = path.as_ref();
     let components = path.components();
+    
+    // Start from root if path is absolute, otherwise initialize with a blank PathBuf
     let mut result = if path.is_absolute() {
         PathBuf::from("/")
     } else {
@@ -179,11 +209,14 @@ fn canonicalize<P: AsRef<Path>>(path: P) -> std::io::Result<PathBuf> {
 
     for component in components {
         match component {
+            // Root and current directory components don't alter the path structure
             std::path::Component::RootDir => {}
             std::path::Component::CurDir => {}
             std::path::Component::ParentDir => {
+                // Remove the last component for each `..` in the path
                 result.pop();
             }
+            // Normal component represents a directory or file name to append
             std::path::Component::Normal(name) => {
                 result.push(name);
             }
@@ -191,5 +224,6 @@ fn canonicalize<P: AsRef<Path>>(path: P) -> std::io::Result<PathBuf> {
         }
     }
 
+    // Perform the final canonicalization to resolve symbolic links and normalize the path
     fs::canonicalize(result)
 }
