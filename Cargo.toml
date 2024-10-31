@@ -3,6 +3,10 @@ name = "flattenrs"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "flattenrs"
+path = "src/lib.rs"
+
 [dependencies]
 chrono = "0.4.38"
 ignore = "0.4.22"

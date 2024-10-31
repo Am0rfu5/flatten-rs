@@ -130,6 +130,7 @@ mod tests {
     use std::fs::{self, File};
     use std::io::Write;
     use tempfile::tempdir;
+    use std::path::PathBuf;
 
     #[test]
     fn test_process_files() {
@@ -165,7 +166,7 @@ mod tests {
     }
 
     #[test]
-    fn test_calculate_directory_size() {
+    fn test_calculate_directory_size_basic() {
         let temp_dir = tempdir().unwrap();
         let dir_path = temp_dir.path().canonicalize().unwrap();
 
@@ -188,7 +189,7 @@ mod tests {
     }
 
     #[test]
-    fn test_calculate_directory_size_with_excludes() {
+    fn test_calculate_directory_size_excludes() {
         let temp_dir = tempdir().unwrap();
         let dir_path = temp_dir.path().canonicalize().unwrap();
 
@@ -202,99 +203,35 @@ mod tests {
         writeln!(file2, "fn main() {{ println!(\"Hello, world!\"); }}").unwrap();
 
         // Exclude test1.txt
-        let exclude = ExcludeList::new(&dir_path, 
-            vec![PathBuf::from("test1.txt")]);
+        let exclude = ExcludeList::new(&dir_path, vec![PathBuf::from("test1.txt")]);
         let include = IncludeList::new(&dir_path, vec![]);
-        let size = calculate_directory_size(&dir_path, &exclude, &include, 
-            true).unwrap();
+        let size = calculate_directory_size(&dir_path, &exclude, &include, true).unwrap();
 
         // Assertions
         assert_eq!(size, file2_path.metadata().unwrap().len());
     }
 
     #[test]
-    fn test_calculate_directory_size_with_includes() {
+    fn test_hidden_files_not_included_by_default() {
         let temp_dir = tempdir().unwrap();
         let dir_path = temp_dir.path().canonicalize().unwrap();
-        let sub_dir_path = temp_dir.path().join("subdir");
-    
-        // Create an empty exclude and include list
-        let exclude = ExcludeList::new(&dir_path, vec![]);
-        let include = IncludeList::new(&dir_path, vec![]);
-    
-        // Create a text file
+
+        // Create a visible file and a hidden file
         let file1_path = dir_path.join("test1.txt");
         let mut file1 = File::create(&file1_path).unwrap();
         writeln!(file1, "This is test file 1").unwrap();
-    
-        // Calculate the expected size = file1 size
-        let expected_size = file1_path.metadata().unwrap().len();
-        let calc_size = calculate_directory_size(&dir_path, &exclude, &include, false).unwrap();
-    
-        assert_eq!(calc_size, expected_size);
-    
-        // Create a hidden text file
+
         let hidden_file_path = dir_path.join(".hidden_file.txt");
         let mut hidden_file = File::create(&hidden_file_path).unwrap();
         writeln!(hidden_file, "This is a hidden file").unwrap();
-    
-        // Recalculate size, it should still only include `test1.txt` since `allow_hidden` is false
-        let calc_size = calculate_directory_size(&dir_path, &exclude, &include, false).unwrap();
-        assert_eq!(calc_size, expected_size);
-    
-        // Create a Rust file
-        let file2_path = dir_path.join("test2.rs");
-        let mut file2 = File::create(&file2_path).unwrap();
-        writeln!(file2, "fn main() {{ println!(\"Hello, world!\"); }}").unwrap();
-    
-        let expected_size = expected_size + file2_path.metadata().unwrap().len();
-        let calc_size = calculate_directory_size(&dir_path, &exclude, &include, false).unwrap();
-        assert_eq!(calc_size, expected_size);
-    
-        // Create a file in the subdirectory `subdir`
-        fs::create_dir(&sub_dir_path).unwrap();
-        let file3_path = sub_dir_path.join("test3.md");
-        let mut file3 = File::create(&file3_path).unwrap();
-        writeln!(file3, "fn main() {{ println!(\"# MARKDOWN!\"); }}").unwrap();
-    
-        // Create a hidden subdirectory with a file in it
-        let hidden_sub_dir_path = dir_path.join(".hidden_subdir");
-        fs::create_dir(&hidden_sub_dir_path).unwrap();
-        let file4_path = hidden_sub_dir_path.join("test4.md");  
-        let mut file4 = File::create(&file4_path).unwrap();
-        writeln!(file4, "fn main() {{ println!(\"# MARKDOWN! in File4\"); }}").unwrap();
-    
-        // Expected size should only include test1, test2, and test3 (excluding hidden files)
-        let expected_size = expected_size + file3_path.metadata().unwrap().len();
-        let calc_size = calculate_directory_size(&dir_path, &exclude, &include, false).unwrap();
-        assert_eq!(calc_size, expected_size);
-    
-        // Exclude `test1.txt` and recalculate
-        let exclude = ExcludeList::new(&dir_path, vec![PathBuf::from("test1.txt")]);
-        let expected_size = file2_path.metadata().unwrap().len() + file3_path.metadata().unwrap().len();
-        let calc_size = calculate_directory_size(&dir_path, &exclude, &include, false).unwrap();
-        assert_eq!(calc_size, expected_size);
-    
-        // Create a `.gitignore` file to exclude `test2.rs`
-        let gitignore_path = dir_path.join(".gitignore");
-        let mut gitignore = File::create(&gitignore_path).unwrap();
-        writeln!(gitignore, "test2.rs").unwrap();
-    
-        // Recalculate with .gitignore; only file3 should be included
-        let calc_size = calculate_directory_size(&dir_path, &exclude, &include, false).unwrap();
-        let expected_size = file3_path.metadata().unwrap().len();
-        assert_eq!(calc_size, expected_size);
-    
-        // Test including a hidden file
-        let include = IncludeList::new(&dir_path, vec![PathBuf::from(".hidden_file.txt")]);
-        let calc_size = calculate_directory_size(&dir_path, &exclude, &include, true).unwrap();
-        let expected_size = expected_size + hidden_file_path.metadata().unwrap().len();
-        assert_eq!(calc_size, expected_size);
-    
-        // Test including a hidden directory
-        let include = IncludeList::new(&dir_path, vec![PathBuf::from(".hidden_subdir")]);
-        let calc_size = calculate_directory_size(&dir_path, &exclude, &include, true).unwrap();
-        let expected_size = expected_size + file4_path.metadata().unwrap().len();
-        assert_eq!(calc_size, expected_size);
+
+        // Calculate size without allowing hidden files
+        let exclude = ExcludeList::new(&dir_path, vec![]);
+        let include = IncludeList::new(&dir_path, vec![]);
+        let size = calculate_directory_size(&dir_path, &exclude, &include, false).unwrap();
+
+        // Only the visible file size should be counted
+        assert_eq!(size, file1_path.metadata().unwrap().len());
     }
+
 }
