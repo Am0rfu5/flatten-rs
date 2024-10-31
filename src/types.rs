@@ -2,27 +2,31 @@ use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Represents a path that should be excluded from directory traversal.
+/// Represents a file path to exclude during directory traversal.
+/// `ExcludeItem` provides a convenient abstraction for defining
+/// paths that should not be processed.
 #[derive(Debug)]
 pub struct ExcludeItem(PathBuf);
 
 impl ExcludeItem {
-    /// Creates a new `ExcludeItem` instance from a given base directory and path.
+    /// Constructs a new `ExcludeItem` from a base directory and path.
+    /// Returns `None` if the path cannot be resolved.
     ///
     /// This method combines the base directory and path, then canonicalizes it to
     /// create an exclusion pattern.
-    ///
+    /// 
     /// # Arguments
     ///
-    /// * `base_dir` - The base directory where the path is rooted.
-    /// * `path` - A relative path to be excluded.
+    /// * `base_dir` - The base directory to which the path is relative.
+    /// * `path` - The path to exclude.
     ///
     /// # Returns
     ///
     /// * `Some(ExcludeItem)` if the path is successfully canonicalized.
     /// * `None` if canonicalization fails.
-
     pub fn new(base_dir: &Path, path: PathBuf) -> Option<Self> {
+        // Canonicalize the path to ensure a consistent absolute reference.
+        // This helps avoid mismatches caused by relative paths or symbolic links.
         let full_path = base_dir.join(path);
         canonicalize(full_path).ok().map(|p| {
             let rel_path = p.strip_prefix(base_dir).unwrap_or(&p).to_path_buf();
@@ -32,24 +36,24 @@ impl ExcludeItem {
     }
 }
 
-/// Represents a path that should be included explicitly in directory traversal.
+/// Represents a file path to explicitly include during directory traversal.
+/// Similar to `ExcludeItem`, `IncludeItem` is used to define paths that should
+/// be included in the flattened directory output.
 #[derive(Debug)]
 pub struct IncludeItem(PathBuf);
 
 impl IncludeItem {
-    /// Creates a new `IncludeItem` instance from a given base directory and path.
-    ///
-    /// This method canonicalizes the provided path to ensure valid inclusion.
+    /// Constructs a new `IncludeItem` from a base directory and path.
+    /// Returns `None` if the path cannot be resolved.
     ///
     /// # Arguments
     ///
-    /// * `base_dir` - The base directory where the path is rooted.
-    /// * `path` - A relative path to be included.
+    /// * `base_dir` - The base directory to which the path is relative.
+    /// * `path` - The path to include.
     ///
     /// # Returns
     ///
-    /// * `Some(IncludeItem)` if the path is successfully canonicalized.
-    /// * `None` if canonicalization fails.
+    /// `Some(IncludeItem)` if the path is valid, `None` otherwise.
     pub fn new(base_dir: &Path, path: PathBuf) -> Option<Self> {
         let full_path = base_dir.join(path);
         canonicalize(full_path).ok().map(|p| {
@@ -59,25 +63,27 @@ impl IncludeItem {
     }
 }
 
-/// A list of paths to be excluded from directory traversal.
+/// A collection of paths to exclude during directory traversal.
+///
+/// `ExcludeList` is used to specify a list of paths that should be ignored,
+/// providing methods to check if a path is within the excluded items.
 #[derive(Debug)]
 pub struct ExcludeList(pub Vec<PathBuf>);
 
 
 impl ExcludeList {
-    /// Constructs a new `ExcludeList` instance with a default exclusion and optional
-    /// user-specified exclusions.
+    /// Constructs a new `ExcludeList` based on a set of exclude paths.
     ///
     /// # Arguments
     ///
-    /// * `base_dir` - The base directory where exclusions are rooted.
+    /// * `base_dir` - The base directory for resolving exclude paths.
     /// * `excludes` - A vector of relative paths to exclude.
     pub fn new(base_dir: &Path, excludes: Vec<PathBuf>) -> Self {
         let mut list = Vec::new();
 
         // Add default excludes
-        // list.push(ExcludeItem::new(base_dir, PathBuf::from("flattenrs*")));
-        if let Some(default_excludes) = ExcludeItem::new(base_dir, PathBuf::from("flattenrs")) {
+        // list.push(ExcludeItem::new(base_dir, PathBuf::from("flatten*")));
+        if let Some(default_excludes) = ExcludeItem::new(base_dir, PathBuf::from("flatten")) {
             list.push(default_excludes.0);
         }
 
@@ -88,11 +94,12 @@ impl ExcludeList {
     }
 
     // @TODO: Implement contains method or remove it
-    /// Checks if a path is present in the exclude list.
+    // Is this for testing or library?
+    /// Checks if a specific path is contained within the exclusion list.
     ///
     /// # Arguments
     ///
-    /// * `path` - The path to check against the exclude list.
+    /// * `path` - The path to check.
     ///
     /// # Returns
     ///
@@ -103,15 +110,19 @@ impl ExcludeList {
     }
 }
 
+/// A collection of paths to include during directory traversal.
+///
+/// `IncludeList` is used to specify a list of paths that should be
+/// explicitly included, even if they would otherwise be excluded.
 #[derive(Debug)]
 pub struct IncludeList(pub Vec<PathBuf>);
 
 impl IncludeList {
-    /// Constructs a new `IncludeList` instance with user-specified paths.
+    /// Constructs a new `IncludeList` based on a set of include paths.
     ///
     /// # Arguments
     ///
-    /// * `base_dir` - The base directory where inclusions are rooted.
+    /// * `base_dir` - The base directory for resolving include paths.
     /// * `includes` - A vector of relative paths to include.
     pub fn new(base_dir: &Path, includes: Vec<PathBuf>) -> Self {
         let list: Vec<PathBuf> = includes.into_iter()
@@ -122,11 +133,11 @@ impl IncludeList {
     }
     
     // @TODO: Implement contains method or remove it
-    /// Checks if a path is present in the include list.
+    /// Checks if a specific path is contained within the inclusion list.
     ///
     /// # Arguments
     ///
-    /// * `path` - The path to check against the include list.
+    /// * `path` - The path to check.
     ///
     /// # Returns
     ///

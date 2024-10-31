@@ -1,7 +1,11 @@
 use structopt::StructOpt;
 use std::path::PathBuf;
 
-/// Command-line interface options for the `flattenrs` tool.
+/// Defines command-line arguments for the `flatten` application.
+///
+/// `Cli` is parsed at runtime to determine the directory to process,
+/// the output file, and various include/exclude options, which control
+/// how `flatten` will perform directory flattening and file processing.
 #[derive(StructOpt)]
 pub struct Cli {
     /// The directory to flatten

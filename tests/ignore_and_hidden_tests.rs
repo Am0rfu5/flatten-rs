@@ -1,8 +1,8 @@
 use std::fs::{self, File};
 use std::io::Write;
 use tempfile::tempdir;
-use flattenrs::file_processing::calculate_directory_size;
-use flattenrs::types::{ExcludeList, IncludeList};
+use flatten::file_processing::calculate_directory_size;
+use flatten::types::{ExcludeList, IncludeList};
 
 #[test]
 #[ignore]

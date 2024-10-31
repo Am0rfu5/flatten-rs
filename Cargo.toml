@@ -1,17 +1,17 @@
 [package]
-name = "flattenrs"
+name = "flatten"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "flattenrs"
+name = "flatten"
 path = "src/lib.rs"
 
 [dependencies]
 chrono = "0.4.38"
-ignore = "0.4.22"
+ignore = "0.4.23"
 path-clean = "1.0.1"
 structopt = "0.3.26"
 syntect = "5.2.0"
-tempfile = "3.10.1"
+tempfile = "3.13.0"
 walkdir = "2.5.0"

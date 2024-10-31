@@ -1,51 +1,77 @@
-# `flattenrs`
+# `flatten`
 
 ## Overview
-`flattenrs` is a Rust-based command-line tool that consolidates all files within a specified directory into a single output file. The tool supports options for including/excluding specific files or directories, processing hidden files, and managing output formats for various file types. With its flexible CLI and syntax highlighting support, `flattenrs` is ideal for quick aggregation of files for documentation, backup, or analysis.
+`flatten` is a Rust-based command-line tool that consolidates all files within a specified directory into a single output file. The tool supports options for including/excluding specific files or directories, processing hidden files, and managing output formats for various file types. With its flexible CLI and syntax highlighting support, `flatten` is ideal for quick aggregation of files for documentation, backup, or analysis.
 
 ## Features
 - **Directory Flattening**: Recursively includes all files in a directory into one output file.
 - **Include/Exclude Filtering**: Specify which files or directories to include or exclude.
 - **Hidden Files Support**: Toggle whether hidden files are included in the output.
-- **Syntax Highlighting**: Applies syntax formatting based on file extensions.
+- **.gitignore Respected**: Automatically excludes files listed in `.gitignore`.
+- **.ignore File Support**: Excludes files listed in `.ignore` files.
 
 ## Installation
-To install `flattenrs`, ensure you have Rust and Cargo installed, then clone the repository and run:
+To install `flatten`, ensure you have Rust and Cargo installed, then clone the repository and run:
 
 ```bash
-git clone https://github.com/username/flattenrs.git
-cd flattenrs
+git clone https://github.com/username/flatten.git
+cd flatten
 cargo build --release
 ```
-
 This will produce an executable in the `target/release` directory.
 
-## Usage
-The CLI offers a variety of options for custom usage:
+## Ignore Files and Directories
+
+`flatten` respects `.gitignore` and `.ignore` files in the directory being flattened. If these files are present, `flatten` will exclude files and directories listed in them. This feature is useful for excluding build artifacts, configuration files, temporary files, and other unwanted content.
+
+## CLI Usage Instructions
+
+### Overview
 
 ```bash
-flattenrs [FLAGS] [OPTIONS]
+flatten [FLAGS] [OPTIONS]
 ```
+### Description
+The `flatten` CLI tool provides a way to flatten directories into a single file, applying include and exclude filters as well as options for handling hidden files. This section describes each command-line option and provides usage examples.
 
-### Arguments & Options
+### Command-Line Options
 
-| Flag/Option      | Description                                    | Example Usage                |
-|------------------|------------------------------------------------|------------------------------|
-| `--directory`    | The directory to flatten. Defaults to `.`      | `--directory ./src`          |
-| `-o`, `--output` | Specify the output file path                   | `-o flattened_output.txt`    |
-| `-e`, `--exclude`| Exclude specific files or directories          | `-e path/to/exclude`         |
-| `-i`, `--include`| Include specific files or directories only     | `-i path/to/include`         |
-| `-h`, `--allow_hidden`| Allow hidden files to be processed       | `-h`                         |
+| Flag                   | Description                                                                             | Example                       |
+|------------------------|-----------------------------------------------------------------------------------------|-------------------------------|
+| `-- <directory>`          | Specifies the directory to flatten. Defaults to the current directory (`.`) if omitted. | `-- ./src    |
+| `-o`,`--output`        | Defines the output file where the flattened content will be saved.                      | `--output ./flattened.txt`    |
+| `-e`,`--exclude`       | Specifies files or directories to exclude during flattening. Can be used multiple times.| `--exclude ./file1.txt`       |
+| `-i`, `--include`      | Specifies files or directories to include, overriding excludes. Can be used multiple times. | `--include ./file2.txt`   |
+| `-h`, `--allow_hidden` | Allows hidden files to be included in the output. Without this flag, hidden files are skipped. | `--allow_hidden`       |
 
-**Example Command**
-To flatten files in a specific directory, excluding certain files and including hidden files, use:
+### Usage Examples
 
-```bash
-flattenrs --directory ./my_project -o output.txt -e .git -h
-```
+- **Basic Flattening of a Directory**:
+  ```bash
+  flatten -- ./src
+  ```
+  This command flattens all files in `./src` and saves them in `./flattened_output.txt`.
+
+- **Exclude Specific Files or Directories**:
+  ```bash
+  flatten --output ./output.txt --exclude ./my_directory/ignore_me -- ./my_directory
+  ```
+  This command excludes `ignore_me` from `./my_directory` while flattening and saves the result in `output.txt`.
+
+- **Include Only Specific Files**:
+  ```bash
+  flatten --output ./output.txt --include ./my_directory/important.txt
+  ```
+  This will process only `important.txt` and write it to `output.txt`.
+
+- **Flatten with Hidden Files**:
+  ```bash
+  flatten --output ./output.txt --allow_hidden -- ./my_directory
+  ```
+  This will include hidden files in the output.
 
 ### Default Output File
-If no output file is specified, the program generates one with the format `flattenrs-[directory]-YYYY-MM-DD_HH-MM-SS.txt`.
+If no output file is specified, the program generates one with the format `flatten-[directory]-YYYY-MM-DD_HH-MM-SS.txt`.
 
 ## Example Output Format
 The tool aggregates files using syntax-aware markdown-style comments for better readability:
@@ -59,9 +85,10 @@ fn main() {
 ```
 
 ## LICENSE
-``plaintext
+```plaintext
 MIT License
 ...
+```
 ```
 
 ## Development
@@ -74,7 +101,7 @@ This project uses **Rust’s structopt** for CLI parsing and **syntect** for syn
 
 ## Contributing
 
-We welcome contributions to `flattenrs`! Please follow these steps:
+We welcome contributions to `flatten`! Please follow these steps:
 
 1. Fork the repository.
 2. Create a new branch (`git checkout -b feature/my-feature`).

@@ -44,30 +44,48 @@ fn build_walker(directory: &PathBuf, exclude: &ExcludeList, include: &IncludeLis
     Ok(walker)
 }
 
-/// Processes all files in a directory and writes their contents into a single output file.
+/// Processes all files within the given directory according to the specified include
+/// and exclude lists, and writes the flattened content into the specified output file.
+///
+/// This function reads each file's contents, formats them with appropriate syntax highlighting
+/// or plain text tags based on the file extension, and writes them into the output file.
 ///
 /// # Arguments
 ///
-/// * `directory` - The directory containing files to process.
-/// * `output_file` - The output file where contents are consolidated.
-/// * `exclude` - An `ExcludeList` specifying files/directories to ignore.
-/// * `include` - An `IncludeList` specifying files/directories to include.
-/// * `allow_hidden` - Indicates whether hidden files are included in processing.
+/// * `directory` - The base directory to flatten.
+/// * `output_file` - The file where the flattened output will be written.
+/// * `exclude` - An `ExcludeList` specifying files and directories to ignore.
+/// * `include` - An `IncludeList` specifying files and directories to include.
+/// * `allow_hidden` - Boolean indicating whether hidden files should be included.
 ///
 /// # Returns
 ///
-/// * `Ok(())` if successful.
-/// * `Err(io::Error)` if file processing or writing fails.
-pub fn process_files(directory: &PathBuf, output_file: &PathBuf, exclude: &ExcludeList, include: &IncludeList, allow_hidden: bool) -> io::Result<()> {
-
+/// * `Ok(())` if all files were processed successfully.
+/// * `Err(io::Error)` if any file I/O error occurs during processing.
+pub fn process_files(
+    directory: &PathBuf, 
+    output_file: &PathBuf, 
+    exclude: &ExcludeList, 
+    include: &IncludeList, 
+    allow_hidden: bool
+) -> io::Result<()> {
+    
+    // Attempt to create the output file, return an error if creation fails.
     let mut output = File::create(output_file)?;
     let ss = SyntaxSet::load_defaults_newlines();
-    let walker = build_walker(directory, exclude, include, allow_hidden).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    
+    // Build the file walker, handling errors in directory access or invalid paths.
 
+    let walker = build_walker(directory, exclude, include, allow_hidden)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+    // Traverse the directory using the walker
     for result in walker {
+        // Handle walker entry errors (e.g., permission denied on certain files)
         let entry = result.map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
         let path = entry.path().canonicalize().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
         
+        // Skip directories, as we only process individual files
         if entry.file_type().map_or(false, |ft| ft.is_file()) && path != output_file.canonicalize().map_err(|e| io::Error::new(io::ErrorKind::Other, e))? {
             let rel_path = path.strip_prefix(directory).unwrap_or(&path);
             let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("txt");
@@ -76,10 +94,13 @@ pub fn process_files(directory: &PathBuf, output_file: &PathBuf, exclude: &Exclu
             writeln!(output, "## {}", rel_path.display())?;
             writeln!(output, "```{}", syntax.name.to_lowercase())?;
 
+            // Open the file and read its content, return an error if read fails
             let mut file = File::open(&path)?;
             let mut contents = Vec::new();
             file.read_to_end(&mut contents)?;
 
+            // Write formatted output with syntax highlighting based on file extension
+            // Errors here are critical, so they propagate up the stack
             match String::from_utf8(contents) {
                 Ok(text) => writeln!(output, "{}", text)?,
                 Err(_) => writeln!(output, "<non-UTF-8 data>")?,
@@ -94,30 +115,45 @@ pub fn process_files(directory: &PathBuf, output_file: &PathBuf, exclude: &Exclu
 }
 
 
-/// Calculates the cumulative size of all files in a directory, excluding or including
-/// specific files based on provided filters.
+/// Calculates the total size of all files within a directory, respecting the
+/// include and exclude lists as well as hidden file preferences.
+///
+/// This function sums the file sizes for all files in the specified directory,
+/// optionally including hidden files and filtering based on the provided
+/// include and exclude lists. It is useful for verifying size limits or estimating
+/// space requirements before flattening a directory.
 ///
 /// # Arguments
 ///
 /// * `directory` - The directory containing files to calculate.
-/// * `exclude` - An `ExcludeList` specifying files/directories to ignore.
-/// * `include` - An `IncludeList` specifying files/directories to include.
-/// * `allow_hidden` - A flag to determine if hidden files are counted.
+/// * `exclude` - An `ExcludeList` specifying files and directories to ignore.
+/// * `include` - An `IncludeList` specifying files and directories to include.
+/// * `allow_hidden` - Boolean indicating whether hidden files should be counted.
 ///
 /// # Returns
 ///
-/// * `Ok(u64)` - The total size in bytes of all included files.
-/// * `Err(io::Error)` - If any file operation fails.
-pub fn calculate_directory_size(directory: &PathBuf, exclude: &ExcludeList, include: &IncludeList, allow_hidden: bool) -> io::Result<u64> {
+/// * `Ok(u64)` - The total byte size of all counted files in the directory.
+/// * `Err(io::Error)` if a file I/O error occurs during size calculation.
+pub fn calculate_directory_size(
+    directory: &PathBuf, 
+    exclude: &ExcludeList, 
+    include: &IncludeList, 
+    allow_hidden: bool
+) -> io::Result<u64> {
 
-    let walker = build_walker(directory, exclude, include, allow_hidden).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    // Walker will allow hideen files if allow_hidden is true
+    let walker = build_walker(directory, exclude, include, allow_hidden)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
     let mut size = 0;
-
+    
+    // Use walker to traverse directory;        
     for result in walker {
-        let entry = result.map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
+        let entry = result
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        
         if entry.file_type().map_or(false, |ft| ft.is_file()) {
-            size += entry.metadata().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?.len();
+            size += entry.metadata()
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?.len();
         }
     }
 

@@ -10,7 +10,7 @@ use chrono::Local;
 use types::{ExcludeList, IncludeList};
 use std::fs::canonicalize;
 
-/// Main function for the `flattenrs` command-line application.
+/// Main function for the `flatten` command-line application.
 ///
 /// This function parses command-line arguments, initializes include and exclude lists,
 /// checks the directory size, and performs file processing based on the input configuration.
@@ -35,7 +35,7 @@ fn main() -> io::Result<()> {
             let current_dir = directory.file_stem()
                 .and_then(|os_str| os_str.to_str())
                 .unwrap_or("root");
-            PathBuf::from(format!("flattenrs-{}-{}.txt", current_dir, datetime))
+            PathBuf::from(format!("flatten-{}-{}.txt", current_dir, datetime))
         }
     };
 
